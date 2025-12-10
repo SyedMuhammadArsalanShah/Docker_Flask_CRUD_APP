@@ -254,22 +254,59 @@ docker-compose down
 
 ## **10. Deploy on Railway**
 
-1. **Create Railway project:** [https://railway.app](https://railway.app)
-2. **Connect GitHub repository** containing the project.
-3. **Add Dockerfile & docker-compose.yml** in root of repo.
-4. **Set environment variables in Railway:**
 
-| Key         | Value      |
+### **Step 1 — Upload Your Project to GitHub**
+
+All files including Dockerfile & docker-compose.yml.
+
+### **Step 2 — Create New Railway Project**
+
+Go to:
+[https://railway.app](https://railway.app)
+
+Click:
+
+* New Project
+* Deploy from GitHub
+
+Railway auto-detects Dockerfile.
+
+### **Step 3 — Add PostgreSQL**
+
+Add → PostgreSQL
+Railway creates a cloud database.
+
+### **Step 4 — Add Environment Variables**
+
+In Railway → Variables:
+
+| KEY         | VALUE      |
 | ----------- | ---------- |
 | DB_HOST     | db         |
 | DB_NAME     | mydb       |
 | DB_USER     | myuser     |
 | DB_PASSWORD | mypassword |
 
-5. **Deploy project:** Railway automatically builds Docker image and runs containers.
-6. **Access deployed API** via Railway URL.
+If using Railway Postgres URL, set it like this:
+
+```
+DATABASE_URL=postgresql://user:pass@host:port/dbname
+```
+
+### **Step 5 — Deploy**
+
+Railway builds the Docker image and starts your Flask server.
+
+### **Step 6 — Test API**
+
+Open:
+
+```
+https://your-app.up.railway.app/users
+```
 
 ---
+
 
 
 # **Visual Diagram & Explanation: Flask CRUD App on Docker + Railway**
