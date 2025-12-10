@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import psycopg2
 import os
 import time
@@ -6,13 +6,12 @@ from urllib.parse import urlparse
 
 app = Flask(__name__)
 
-# Get DATABASE_URL from environment (Railway sets this automatically)
+# Get DATABASE_URL from environment (Railway provides it automatically)
 DATABASE_URL = os.environ.get("DATABASE_URL")
-
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable not set!")
 
-# Parse DATABASE_URL for psycopg2
+# Parse DATABASE_URL
 result = urlparse(DATABASE_URL)
 db_name = result.path[1:]  # remove leading '/'
 db_user = result.username
@@ -36,18 +35,61 @@ while True:
         print(f"Waiting for DB to start... ({e})")
         time.sleep(2)
 
-@app.route("/")
-def home():
+# CRUD routes
+@app.route("/users", methods=["GET"])
+def get_users():
     cur = conn.cursor()
-    cur.execute("SELECT version();")
-    db_version = cur.fetchone()
+    cur.execute("SELECT id, name, email FROM users;")
+    users = cur.fetchall()
     cur.close()
-    return jsonify({
-        "message": "Hello, Docker with Python!",
-        "postgres_version": db_version[0]
-    })
+    return jsonify([{"id": u[0], "name": u[1], "email": u[2]} for u in users])
+
+@app.route("/users/<int:user_id>", methods=["GET"])
+def get_user(user_id):
+    cur = conn.cursor()
+    cur.execute("SELECT id, name, email FROM users WHERE id=%s;", (user_id,))
+    user = cur.fetchone()
+    cur.close()
+    if user:
+        return jsonify({"id": user[0], "name": user[1], "email": user[2]})
+    return jsonify({"error": "User not found"}), 404
+
+@app.route("/users", methods=["POST"])
+def create_user():
+    data = request.get_json()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO users (name, email) VALUES (%s, %s) RETURNING id;",
+                (data["name"], data["email"]))
+    user_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    return jsonify({"id": user_id, "name": data["name"], "email": data["email"]}), 201
+
+@app.route("/users/<int:user_id>", methods=["PUT"])
+def update_user(user_id):
+    data = request.get_json()
+    cur = conn.cursor()
+    cur.execute("UPDATE users SET name=%s, email=%s WHERE id=%s RETURNING id;",
+                (data["name"], data["email"], user_id))
+    updated = cur.fetchone()
+    conn.commit()
+    cur.close()
+    if updated:
+        return jsonify({"id": user_id, "name": data["name"], "email": data["email"]})
+    return jsonify({"error": "User not found"}), 404
+
+@app.route("/users/<int:user_id>", methods=["DELETE"])
+def delete_user(user_id):
+    cur = conn.cursor()
+    cur.execute("DELETE FROM users WHERE id=%s RETURNING id;", (user_id,))
+    deleted = cur.fetchone()
+    conn.commit()
+    cur.close()
+    if deleted:
+        return jsonify({"message": f"User {user_id} deleted"})
+    return jsonify({"error": "User not found"}), 404
 
 if __name__ == "__main__":
-    # Use Railway dynamic PORT
+    # Railway uses dynamic PORT
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
