@@ -334,3 +334,4 @@ docker-compose down
 
 ---
 
+<img width="1024" height="1536" alt="Visual Flow" src="https://github.com/user-attachments/assets/af059a06-9194-4faf-8b7e-a33c67691145" />
